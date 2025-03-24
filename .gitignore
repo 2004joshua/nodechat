@@ -1,0 +1,33 @@
+# Go
+/bin/
+/build/
+/dist/
+*.exe
+*.out
+*.test
+*.log
+
+# Go modules cache
+/pkg/mod/
+/go.sum
+/go.work
+
+# Node
+node_modules/
+ui/build/
+
+# Editor + OS
+.DS_Store
+.vscode/
+.idea/
+
+# Docker/Podman
+*.tar
+.env
+*.pid
+
+# Podman volumes (if you use them)
+podman-volumes/
+
+# Dependency files (if built inside container)
+cmd/**/vendor/

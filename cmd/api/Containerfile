@@ -1,0 +1,10 @@
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go mod init nodechat && \
+    go get github.com/gin-gonic/gin github.com/redis/go-redis/v9 && \
+    go build -o /api ./cmd/api
+
+FROM alpine:latest
+COPY --from=builder /api /usr/local/bin/api
+ENTRYPOINT ["/usr/local/bin/api"]
