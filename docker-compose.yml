@@ -1,0 +1,7 @@
+peer:
+  build: ./cmd/peer
+  ports: ["8080:8080"]
+
+api:
+  build: ./cmd/api
+  ports: ["8081:8080"]

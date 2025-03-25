@@ -1,9 +1,10 @@
 package main
 
 import (
-	"nodechat/pkg/api"
-	"nodechat/pkg/pubsub"
 	"os"
+
+	api "github.com/2004joshua/nodechat/pkg/api"
+	"github.com/2004joshua/nodechat/pkg/pubsub"
 )
 
 func main() {
@@ -12,5 +13,5 @@ func main() {
 		redisAddr = "redis:6379"
 	}
 	client := pubsub.NewClient(redisAddr)
-	api.NewRouter(client).Run(":8080")
+	api.NewRouter(client).Run(":8081")
 }
