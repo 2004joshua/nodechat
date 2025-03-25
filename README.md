@@ -13,9 +13,8 @@ By Joshua Arrevillaga
 ### Setup
 
 1. git clone https://github.com/yourusername/nodechat.git
-   cd nodechat
 
-2. podman build -t nodechat -f Containerfile .
+2. cd nodechat
 
 3. podman-compose up --build
 
