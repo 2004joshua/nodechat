@@ -1,26 +1,42 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"bufio"
+	"flag"
+	"fmt"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/2004joshua/nodechat/internal/peer"
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	port := flag.String("port", "", "port to listen on")
+	connect := flag.String("connect", "", "peer to connect to (ip:port)")
+	flag.Parse()
+
+	if *port == "" {
+		fmt.Println("Usage: go run main.go --port=PORT [--connect=IP:PORT]")
+		os.Exit(1)
 	}
 
-	hub := NewHub()
-	go hub.Run()
+	p := peer.New(":" + *port)
 
-	r := mux.NewRouter()
-	r.HandleFunc("/ws", hub.HandleWS)
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("ui/build")))
+	err := p.Listen()
+	if err != nil {
+		panic(err)
+	}
 
-	log.Printf("NodeChat listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	if *connect != "" {
+		err := p.Connect(*connect)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Broadcast messages from stdin
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		msg := scanner.Text()
+		p.Broadcast(msg)
+	}
 }
