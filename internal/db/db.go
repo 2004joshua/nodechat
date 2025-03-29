@@ -10,7 +10,7 @@ import (
 
 var DB *sql.DB
 
-// InitDB ...
+// InitDB opens (or creates) the SQLite database and sets up the messages table.
 func InitDB(filepath string) error {
 	var err error
 	DB, err = sql.Open("sqlite3", filepath)
@@ -19,15 +19,15 @@ func InitDB(filepath string) error {
 	}
 
 	sqlStmt := `
-    CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        type TEXT,
-        sender TEXT,
-        content TEXT,
-        timestamp INTEGER,
-        topic TEXT
-    );
-    `
+	CREATE TABLE IF NOT EXISTS messages (
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		type TEXT,
+		sender TEXT,
+		content TEXT,
+		timestamp INTEGER,
+		topic TEXT
+	);
+	`
 	_, err = DB.Exec(sqlStmt)
 	if err != nil {
 		return fmt.Errorf("failed to create table: %v", err)
@@ -45,8 +45,5 @@ func SaveMessage(msg *model.Message) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(msg.Type, msg.Sender, msg.Content, msg.Timestamp, msg.Topic)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

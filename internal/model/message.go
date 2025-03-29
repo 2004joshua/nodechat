@@ -25,10 +25,10 @@ func (m *Message) Encode() (string, error) {
 
 // DecodeMessage converts a JSON string back into a Message.
 func DecodeMessage(data string) (*Message, error) {
-	var m Message
-	err := json.Unmarshal([]byte(data), &m)
+	var msg Message
+	err := json.Unmarshal([]byte(data), &msg)
 	if err != nil {
 		return nil, err
 	}
-	return &m, nil
+	return &msg, nil
 }
