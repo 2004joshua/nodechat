@@ -5,61 +5,54 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/2004joshua/nodechat/internal/db"
+	"github.com/2004joshua/nodechat/internal/model"
 	"github.com/2004joshua/nodechat/internal/peer"
-	"github.com/2004joshua/nodechat/internal/storage"
 )
 
 func main() {
 	port := flag.String("port", "", "port to listen on")
 	connect := flag.String("connect", "", "peer to connect to (ip:port)")
-	name := flag.String("name", "local", "your peer name")
-	dbFile := flag.String("db", "peer.db", "SQLite database file name (will be stored in the databases directory)")
 	flag.Parse()
 
 	if *port == "" {
-		fmt.Println("Usage: go run main.go --port=PORT [--connect=IP:PORT] [--name=YourName] [--db=YourDBFile]")
+		fmt.Println("Usage: go run main.go --port=PORT [--connect=IP:PORT]")
 		os.Exit(1)
 	}
 
-	// Ensure the "databases" directory exists in the project root.
-	dbDir := "databases"
-	err := os.MkdirAll(dbDir, 0755)
-	if err != nil {
-		panic("Failed to create databases directory: " + err.Error())
-	}
-
-	// Construct the full path for the database file.
-	dbPath := filepath.Join(dbDir, *dbFile)
-
-	// Initialize the SQLite database.
-	db, err := storage.NewDB(dbPath)
-	if err != nil {
-		panic("Database initialization failed: " + err.Error())
-	}
-
-	// Create a new peer with the specified port, name, and database.
-	p := peer.New(":"+*port, *name, db)
-
-	// Start listening for incoming connections.
-	err = p.Listen()
-	if err != nil {
+	// Initialize SQLite database
+	if err := db.InitDB("messages.db"); err != nil {
 		panic(err)
 	}
 
-	// If a peer to connect to is specified, connect to it.
+	p := peer.New(":" + *port)
+
+	if err := p.Listen(); err != nil {
+		panic(err)
+	}
+
 	if *connect != "" {
-		err := p.Connect(*connect)
-		if err != nil {
+		if err := p.Connect(*connect); err != nil {
 			panic(err)
 		}
 	}
 
-	// Read messages from stdin and broadcast them.
+	// Read from stdin and broadcast using our JSON protocol.
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		msg := scanner.Text()
-		p.Broadcast(msg)
+		msgText := scanner.Text()
+		// Create a chat message using our JSON-based protocol.
+		msg := &model.Message{
+			Type:    "chat",
+			Sender:  "self", // Replace with actual user identity if needed.
+			Content: msgText,
+		}
+		encodedMsg, err := msg.Encode()
+		if err != nil {
+			fmt.Println("Error encoding message:", err)
+			continue
+		}
+		p.Broadcast(encodedMsg)
 	}
 }

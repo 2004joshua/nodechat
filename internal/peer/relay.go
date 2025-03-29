@@ -5,13 +5,11 @@ import (
 	"net"
 )
 
-// forward sends a message to all peers except the origin.
+// forward sends msg to all peers except the origin
 func forward(origin net.Conn, peers []net.Conn, msg string) {
-	for _, peer := range peers {
-		if peer != origin {
-			if _, err := fmt.Fprintln(peer, msg); err != nil {
-				fmt.Println("Error forwarding message:", err)
-			}
+	for _, p := range peers {
+		if p != origin {
+			fmt.Fprintln(p, msg)
 		}
 	}
 }
