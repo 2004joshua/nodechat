@@ -27,6 +27,12 @@ func InitDB(filepath string) error {
 		timestamp INTEGER,
 		topic TEXT
 	);
+
+	CREATE TABLE IF NOT EXISTS subscriptions (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT,
+		topic TEXT
+	);
 	`
 	_, err = DB.Exec(sqlStmt)
 	if err != nil {
@@ -46,4 +52,65 @@ func SaveMessage(msg *model.Message) error {
 
 	_, err = stmt.Exec(msg.Type, msg.Sender, msg.Content, msg.Timestamp, msg.Topic)
 	return err
+}
+
+// GetMessages retrieves all messages ordered by timestamp.
+func GetMessages() ([]model.Message, error) {
+	rows, err := DB.Query("SELECT type, sender, content, timestamp, topic FROM messages ORDER BY timestamp ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []model.Message
+	for rows.Next() {
+		var m model.Message
+		err := rows.Scan(&m.Type, &m.Sender, &m.Content, &m.Timestamp, &m.Topic)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, m)
+	}
+	return messages, nil
+}
+
+// SaveSubscription stores a new subscription
+func SaveSubscription(username, topic string) error {
+	stmt, err := DB.Prepare("INSERT INTO subscriptions(username, topic) VALUES(?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(username, topic)
+	return err
+}
+
+// RemoveSubscription deletes a topic subscription
+func RemoveSubscription(username, topic string) error {
+	stmt, err := DB.Prepare("DELETE FROM subscriptions WHERE username = ? AND topic = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(username, topic)
+	return err
+}
+
+// GetSubscriptions returns a list of topics for a user
+func GetSubscriptions(username string) ([]string, error) {
+	rows, err := DB.Query("SELECT topic FROM subscriptions WHERE username = ?", username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var topics []string
+	for rows.Next() {
+		var topic string
+		if err := rows.Scan(&topic); err != nil {
+			return nil, err
+		}
+		topics = append(topics, topic)
+	}
+	return topics, nil
 }

@@ -11,16 +11,39 @@ import (
 
 // Peer represents a node in the P2P network.
 type Peer struct {
-	Addr  string
-	peers []net.Conn
+	Addr          string
+	peers         []net.Conn
+	subscriptions map[string]bool
 }
 
 // New creates a new Peer listening on the given address.
-func New(addr string) *Peer {
-	return &Peer{
-		Addr:  addr,
-		peers: make([]net.Conn, 0),
+func New(addr, username string) *Peer {
+	p := &Peer{
+		Addr:          addr,
+		peers:         make([]net.Conn, 0),
+		subscriptions: make(map[string]bool),
 	}
+
+	// Load subscriptions from DB
+	topics, err := db.GetSubscriptions(username)
+	if err != nil {
+		fmt.Println("Error loading subscriptions:", err)
+	} else {
+		for _, t := range topics {
+			p.subscriptions[t] = true
+		}
+	}
+	return p
+}
+
+func (p *Peer) Subscribe(topic string) {
+	p.subscriptions[topic] = true
+	fmt.Println("Subscribed to topic:", topic)
+}
+
+func (p *Peer) Unsubscribe(topic string) {
+	delete(p.subscriptions, topic)
+	fmt.Println("Unsubscribed from topic:", topic)
 }
 
 // Listen starts accepting incoming connections.
@@ -92,23 +115,35 @@ func (p *Peer) handleConn(conn net.Conn) {
 			continue
 		}
 
-		// Process the message based on its type.
+		// ❗️Filter topic-based messages if not subscribed
+		if msg.Topic != "" && !p.subscriptions[msg.Topic] {
+			continue // Ignore this message
+		}
+
+		// Process the message (e.g., print or handle automation)
 		p.processMessage(msg, conn.RemoteAddr())
 
-		// Save the message to the database.
+		// Save the message to the local database
 		if err := db.SaveMessage(msg); err != nil {
 			fmt.Println("Error saving message to database:", err)
 		}
 
-		// Forward the raw JSON message to other connected peers.
+		// Forward to other connected peers (except the origin)
 		forward(conn, p.peers, data)
 	}
+
+	// Clean up when connection is closed
 	p.removePeer(conn)
 	conn.Close()
 }
 
 // processMessage handles incoming messages based on their type.
 func (p *Peer) processMessage(msg *model.Message, senderAddr net.Addr) {
+
+	if msg.Topic != "" && !p.subscriptions[msg.Topic] {
+		return // ignores if peer isnt subscribed to topic
+	}
+
 	switch msg.Type {
 	case "chat":
 		fmt.Printf("[%s] %s: %s\n", senderAddr, msg.Sender, msg.Content)
