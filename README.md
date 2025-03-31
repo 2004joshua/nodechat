@@ -15,31 +15,45 @@ Nodechat is a real-time peer-to-peer chat application built with **Go** for the 
 Start a peer:
 ```bash
 go run cmd/peer/main.go --port=<listening port> --username=<username> --api-port=<api port>
-
+```
 Connecting to a peer:
+```bash
 go run cmd/peer/main.go --port=<listening port> --username=<username> --api-port=<api port> --connect=<IP of peer>
+```
 
 ### Frontend 
 
+```bash
 cd ui
 npm run build
+```
 
 ## Usage 
 
 This is how the UI looks after running
 
-<img src="img/ui.png">
+<p align="center">
+  <img src="img/ui.png" alt="ui" width="400">
+</p>
 
 In the terminal you can use /help to repeat the use cases:
 
-<img src="img/help.png">
+<p align="center">
+  <img src="img/help.png" alt="unsubscribe" width="400">
+</p>
+
 
 To subscribe to specific topics, go to the top left bar and input the topic you want to subscribe to.
 
-<img src="img/subscribe.png">
+<p align="center">
+  <img src="img/subscribe.png" alt="subscribe" width="400">
+</p>
+
 
 To send topic based messages in the main chat run /topic <topic> message
 
 Likewise to unsubscribe.
 
-<img src="img/unsubscribe.png>
+<p align="center">
+  <img src="img/unsubscribe.png" alt="unsubscribe" width="400">
+</p>
