@@ -24,22 +24,22 @@ jobs:
       - name: Build project
         run: go build -o nodechat ./cmd/peer
 
-      - name: Start peers and test in one step
+      - name: Start peers and test
         shell: bash
         run: |
-          # Start Alice
+          # Start Alice (API port=8081)
           ./nodechat --port=3001 --username=Alice --api-port=8081 &
-          # Start Bob, connecting to Alice
+          
+          # Start Bob (API port=8082), connecting to Alice
           ./nodechat --port=3002 --username=Bob --api-port=8082 --connect=127.0.0.1:3001 &
           
-          # Give them time to spin up
+          # Give them time to start listening
           sleep 5
           
-          # Test: Post a message to Alice
-          curl -X POST -H "Content-Type: application/json" \
-               -d '{"type":"chat","sender":"GitHubCI","content":"Hello from GitHub Actions"}' \
-               http://127.0.0.1:8081/messages
+          # Post a message to Alice’s API
+          curl -v -X POST -H "Content-Type: application/json" \
+            -d '{"type":"chat","sender":"GitHubCI","content":"Hello from GitHub Actions"}' \
+            http://127.0.0.1:8081/messages
           
-          # Test: Retrieve messages from Alice
-          curl http://127.0.0.1:8081/messages
-
+          # Retrieve messages from Alice
+          curl -v http://127.0.0.1:8081/messages
