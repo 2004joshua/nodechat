@@ -50,7 +50,7 @@ To subscribe to specific topics, go to the top left bar and input the topic you 
 </p>
 
 
-To send topic based messages in the main chat run /topic <topic> message
+To send topic based messages in the main chat run /topic topic_name message
 
 Likewise to unsubscribe.
 
