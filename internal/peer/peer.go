@@ -115,7 +115,7 @@ func (p *Peer) handleConn(conn net.Conn) {
 			continue
 		}
 
-		// ❗️Filter topic-based messages if not subscribed
+		// Filter topic-based messages if not subscribed
 		if msg.Topic != "" && !p.subscriptions[msg.Topic] {
 			continue // Ignore this message
 		}
@@ -155,7 +155,7 @@ func (p *Peer) processMessage(msg *model.Message, senderAddr net.Addr) {
 		if msg.Content == "ping" {
 			response := &model.Message{
 				Type:    "command",
-				Sender:  "self", // Adjust as necessary for your system
+				Sender:  "self",
 				Content: "pong",
 			}
 			encoded, err := response.Encode()

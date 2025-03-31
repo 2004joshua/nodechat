@@ -1,85 +1,45 @@
 # NodeChat
 By Joshua Arrevillaga
 
-## Setup and Installation
+## Overview
+Nodechat is a real-time peer-to-peer chat application built with **Go** for the backend and **React** for the frontend. It allows users to connect to specific peers, exchange messages, and subscribe to specific topics. This application uses **SQLite** for local message storage and topic-based subscription management.
+
+## Setup Instructions
+
 ### Prerequisites
+- **Go**: Version 1.18+
+- **Node.js**: Version 18+
+- **SQLite**: Installed and configured
 
-* Podman
-* Podman Compose
-* Redis
-* Go 1.20+
-* Node.js
+### Backend Setup (from root)
+Start a peer:
+```bash
+go run cmd/peer/main.go --port=<listening port> --username=<username> --api-port=<api port>
 
-### Setup
+Connecting to a peer:
+go run cmd/peer/main.go --port=<listening port> --username=<username> --api-port=<api port> --connect=<IP of peer>
 
-1. git clone https://github.com/yourusername/nodechat.git
+### Frontend 
 
-2. cd nodechat
+cd ui
+npm run build
 
-3. podman-compose up --build
+## Usage 
 
-4. podman ps
+This is how the UI looks after running
 
-## Podman Use
+<img src="img/ui.png">
 
-<img src="./img/podmanps.png">
+In the terminal you can use /help to repeat the use cases:
 
-The project is fully containerized using Podman, which should ensure it should run consistently on most environments. I have two containerfiles, one for the peer to peer requirement and one for the api messaging system via redis. I also use a docker-compose.yml to orchestrate the services
+<img src="img/help.png">
 
-* Redis: Used as a message broker for pub/sub communication, 
+To subscribe to specific topics, go to the top left bar and input the topic you want to subscribe to.
 
-* nodechat-peer: peer to peer messaging server that listens for Websocket connections, accessed at http://localhost:8080
+<img src="img/subscribe.png">
 
-* nodechat-api: API based messaging server utilizing redis for real timer messaging, runs on port 8081
+To send topic based messages in the main chat run /topic <topic> message
 
-## Phase 1: Peer to Peer Messaging
+Likewise to unsubscribe.
 
-<img src="./img/phase1.png">
-
-For Peer-to-Peer, the server listens for WebSocket connections and serves a React UI at http://localhost:8080. You can open multiple browser tabs to simulate different clients and send messages in real time. The UI, served as static files by the peer server, allows for a graphical interface, replacing the need for terminal-based communication.
-
-## Phase 2: API Messaging
-
-This phase involves transitioning to an API-based system that leverages Redis pub/sub and Server Sent Events (SSE) for real time communication.
-
-<img src="./img/ex_payload.png">
-
-<img src="./img/api_msg.png">
-
-* POST /messages: Accepts a json input and publishes it on the recipient's redis channel
-
-* GET /subscribe/:userID: Establishes an SSE connection to stream real time messages to a specific user
-
-* Using Redis pub/sub lets us route messages without storing data on a central server. local data remains on client devices. 
-
-### Health Check 
-curl http://localhost:8081/health
-
-expected output: 
-{"status": "ok"}
-
-### Subscribe to Messages
-curl -v -N http://localhost:8081/subscribe/bob
-
-### Sending a message
-curl -X POST http://localhost:8081/messages \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sender": "alice",
-    "recipient": "bob",
-    "body": "Hello Bob!"
-  }'
-
-expected output: 
-event:message
-data:{"sender":"alice","recipient":"bob","body":"Bob fuck off!","timestamp":"0001-01-01T00:00:00Z"}
-
-## Future Features
-
-* Create a UI for the API Messaging
-
-* User registration and authentication
-
-* Local storage for offline access
-
-* Remove P2P and fully replace with API Messaging
+<img src="img/unsubscribe.png>
