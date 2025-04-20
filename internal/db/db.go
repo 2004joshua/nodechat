@@ -18,6 +18,7 @@ func InitDB(filepath string) error {
 		return err
 	}
 
+	// Create messages and subscriptions tables, with file support
 	sqlStmt := `
 	CREATE TABLE IF NOT EXISTS messages (
 		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +26,9 @@ func InitDB(filepath string) error {
 		sender TEXT,
 		content TEXT,
 		timestamp INTEGER,
-		topic TEXT
+		topic TEXT,
+		file_url TEXT,
+		file_name TEXT
 	);
 
 	CREATE TABLE IF NOT EXISTS subscriptions (
@@ -36,7 +39,7 @@ func InitDB(filepath string) error {
 	`
 	_, err = DB.Exec(sqlStmt)
 	if err != nil {
-		return fmt.Errorf("failed to create table: %v", err)
+		return fmt.Errorf("failed to create tables: %v", err)
 	}
 
 	return nil
@@ -44,19 +47,32 @@ func InitDB(filepath string) error {
 
 // SaveMessage persists a Message to the SQLite database.
 func SaveMessage(msg *model.Message) error {
-	stmt, err := DB.Prepare("INSERT INTO messages(type, sender, content, timestamp, topic) VALUES (?, ?, ?, ?, ?)")
+	stmt, err := DB.Prepare(
+		`INSERT INTO messages(type, sender, content, timestamp, topic, file_url, file_name)
+		 VALUES(?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(msg.Type, msg.Sender, msg.Content, msg.Timestamp, msg.Topic)
+	_, err = stmt.Exec(
+		msg.Type,
+		msg.Sender,
+		msg.Content,
+		msg.Timestamp,
+		msg.Topic,
+		msg.FileURL,
+		msg.FileName,
+	)
 	return err
 }
 
 // GetMessages retrieves all messages ordered by timestamp.
 func GetMessages() ([]model.Message, error) {
-	rows, err := DB.Query("SELECT type, sender, content, timestamp, topic FROM messages ORDER BY timestamp ASC")
+	rows, err := DB.Query(
+		`SELECT type, sender, content, timestamp, topic, file_url, file_name
+		  FROM messages
+		 ORDER BY timestamp ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +81,15 @@ func GetMessages() ([]model.Message, error) {
 	var messages []model.Message
 	for rows.Next() {
 		var m model.Message
-		err := rows.Scan(&m.Type, &m.Sender, &m.Content, &m.Timestamp, &m.Topic)
+		err := rows.Scan(
+			&m.Type,
+			&m.Sender,
+			&m.Content,
+			&m.Timestamp,
+			&m.Topic,
+			&m.FileURL,
+			&m.FileName,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +98,7 @@ func GetMessages() ([]model.Message, error) {
 	return messages, nil
 }
 
-// SaveSubscription stores a new subscription
+// SaveSubscription stores a new subscription.
 func SaveSubscription(username, topic string) error {
 	stmt, err := DB.Prepare("INSERT INTO subscriptions(username, topic) VALUES(?, ?)")
 	if err != nil {
@@ -85,7 +109,7 @@ func SaveSubscription(username, topic string) error {
 	return err
 }
 
-// RemoveSubscription deletes a topic subscription
+// RemoveSubscription deletes a topic subscription.
 func RemoveSubscription(username, topic string) error {
 	stmt, err := DB.Prepare("DELETE FROM subscriptions WHERE username = ? AND topic = ?")
 	if err != nil {
@@ -96,7 +120,7 @@ func RemoveSubscription(username, topic string) error {
 	return err
 }
 
-// GetSubscriptions returns a list of topics for a user
+// GetSubscriptions returns a list of topics for a user.
 func GetSubscriptions(username string) ([]string, error) {
 	rows, err := DB.Query("SELECT topic FROM subscriptions WHERE username = ?", username)
 	if err != nil {

@@ -6,8 +6,10 @@ import (
 )
 
 type Message struct {
-	Type      string `json:"type"` // e.g. "chat", "notification", "command"
-	Content   string `json:"content"`
+	Type      string `json:"type"`               // "chat", "file", etc.
+	Content   string `json:"content,omitempty"`  // only for chat
+	FileURL   string `json:"fileUrl,omitempty"`  // only for files
+	FileName  string `json:"fileName,omitempty"` // only for files
 	Sender    string `json:"sender"`
 	Timestamp int64  `json:"timestamp"`
 	Topic     string `json:"topic,omitempty"`

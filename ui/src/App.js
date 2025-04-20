@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './App.css';
 
 function App() {
@@ -7,9 +7,10 @@ function App() {
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const [username, setUsername] = useState(initialUsername);
+  const [username] = useState(initialUsername);
   const [topicInput, setTopicInput] = useState("");
   const [subscribedTopics, setSubscribedTopics] = useState([]);
+  const fileRef = useRef(null);
 
   const fetchMessages = async () => {
     try {
@@ -20,16 +21,12 @@ function App() {
       if (Notification.permission === "granted") {
         data.forEach((msg) => {
           if (msg.type === "notification") {
-            new Notification(`${msg.sender}`, {
-              body: msg.content
-            });
+            new Notification(`${msg.sender}`, { body: msg.content });
           }
         });
       }
 
-      const filtered = data.filter(msg => msg.type !== "notification");
-      setMessages(filtered);
-
+      setMessages(data.filter(msg => msg.type !== "notification"));
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
@@ -37,7 +34,7 @@ function App() {
 
   const fetchSubscriptions = async () => {
     try {
-      const res = await fetch(`/subscriptions`);
+      const res = await fetch("/subscriptions");
       const data = await res.json();
       setSubscribedTopics(data || []);
     } catch (err) {
@@ -67,13 +64,47 @@ function App() {
     }
     fetchMessages();
     fetchSubscriptions();
-    const interval = setInterval(() => {
-      fetchMessages();
-    }, 3000);
+    const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, []);
 
   const handleSend = async () => {
+    // 1) GIF upload branch
+    if (fileRef.current?.files.length) {
+      const file = fileRef.current.files[0];
+      const form = new FormData();
+      form.append("file", file);
+
+      try {
+        const uploadRes = await fetch("/upload", {
+          method: "POST",
+          body: form,
+        });
+        const { url, fileName } = await uploadRes.json();
+
+        const payload = {
+          type: "file",
+          sender: username,
+          fileUrl: url,
+          fileName,
+          topic: ""
+        };
+
+        await fetch("/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        fileRef.current.value = "";
+        fetchMessages();
+      } catch (err) {
+        console.error("ERROR: Uploading GIF didn't work", err);
+      }
+      return;
+    }
+
+    // 2) Text/chat branch
     if (newMessage.trim() === "") return;
 
     let content = newMessage;
@@ -90,8 +121,8 @@ function App() {
     const messagePayload = {
       type: "chat",
       sender: username,
-      content: content,
-      topic: topic
+      content,
+      topic
     };
 
     try {
@@ -107,7 +138,7 @@ function App() {
         console.error("Failed to send message");
       }
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("Error sending message", err);
     }
   };
 
@@ -115,11 +146,12 @@ function App() {
     <div className="app-container">
       <div className="sidebar">
         <h2>{username}</h2>
+
         <input
           type="text"
           placeholder="Enter topic"
           value={topicInput}
-          onChange={(e) => setTopicInput(e.target.value)}
+          onChange={e => setTopicInput(e.target.value)}
         />
         <button onClick={handleSubscribe}>Subscribe</button>
         <button onClick={handleUnsubscribe}>Unsubscribe</button>
@@ -127,9 +159,7 @@ function App() {
         <h4>Subscribed Topics:</h4>
         {subscribedTopics.length > 0 ? (
           <ul>
-            {subscribedTopics.map((topic, index) => (
-              <li key={index}>{topic}</li>
-            ))}
+            {subscribedTopics.map((topic, i) => <li key={i}>{topic}</li>)}
           </ul>
         ) : (
           <p className="none">None</p>
@@ -138,9 +168,9 @@ function App() {
 
       <div className="chat-container">
         <div className="messages">
-          {messages.map((msg, index) => (
+          {messages.map((msg, i) => (
             <div
-              key={index}
+              key={i}
               className={`message-bubble ${msg.sender === username ? 'self' : 'other'}`}
             >
               <div className="message-header">
@@ -149,7 +179,17 @@ function App() {
                   {new Date(msg.timestamp * 1000).toLocaleTimeString()}
                 </span>
               </div>
-              <div className="message-content">{msg.content}</div>
+              <div className="message-content">
+                {msg.type === 'file' && msg.fileUrl ? (
+                  <img
+                    src={msg.fileUrl}
+                    alt={msg.fileName}
+                    className="max-w-xs rounded-lg shadow"
+                  />
+                ) : (
+                  msg.content
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -160,6 +200,12 @@ function App() {
             placeholder="Type your message..."
             value={newMessage}
             onChange={e => setNewMessage(e.target.value)}
+          />
+          <input
+            type="file"
+            accept="image/gif"
+            ref={fileRef}
+            className="ml-2"
           />
           <button onClick={handleSend}>Send</button>
         </div>

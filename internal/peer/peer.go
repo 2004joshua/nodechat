@@ -166,6 +166,8 @@ func (p *Peer) processMessage(msg *model.Message, senderAddr net.Addr) {
 				p.Broadcast(encoded)
 			}
 		}
+	case "file":
+		fmt.Printf("[%s] %s sent a GIF: %s\n %s\n", senderAddr, msg.Sender, msg.FileName, msg.FileURL)
 	default:
 		fmt.Printf("[%s] Unknown message type: %s\n", senderAddr, msg.Content)
 	}
