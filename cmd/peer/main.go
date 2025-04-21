@@ -179,40 +179,35 @@ func main() {
 	}()
 
 	// 6) CLI loop for topic commands and chat
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		switch {
-		case strings.HasPrefix(line, "/subscribe "):
-			p.Subscribe(strings.TrimSpace(line[len("/subscribe "):]))
-		case strings.HasPrefix(line, "/unsubscribe "):
-			p.Unsubscribe(strings.TrimSpace(line[len("/unsubscribe "):]))
-		case line == "/exit":
-			fmt.Printf("Goodbye %s…\n", *username)
-			os.Exit(0)
-		case line == "/help":
-			fmt.Println("/subscribe <topic>  subscribe")
-			fmt.Println("/unsubscribe <topic>  unsubscribe")
-			fmt.Println("/topic <t> <msg>     send topic message")
-			fmt.Println("/exit                quit")
-		default:
-			topic, content := "", line
-			if strings.HasPrefix(line, "/topic ") {
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			line := scanner.Text()
+			switch {
+			case strings.HasPrefix(line, "/subscribe "):
+				p.Subscribe(line[len("/subscribe "):])
+			case strings.HasPrefix(line, "/unsubscribe "):
+				p.Unsubscribe(line[len("/unsubscribe "):])
+			case strings.HasPrefix(line, "/topic "):
 				parts := strings.SplitN(line, " ", 3)
 				if len(parts) == 3 {
-					topic, content = parts[1], parts[2]
+					msg := &model.Message{
+						Type:    "chat",
+						Sender:  *username,
+						Content: parts[2],
+						Topic:   parts[1],
+					}
+					enc, _ := msg.Encode()
+					p.Broadcast(enc)
 				}
-			}
-			msg := &model.Message{
-				Type:    "chat",
-				Sender:  *username,
-				Content: content,
-				Topic:   topic,
-			}
-			if enc, err := msg.Encode(); err == nil {
-				p.Broadcast(enc)
+			case line == "/exit":
+				fmt.Printf("Goodbye %s…\n", *username)
+				os.Exit(0)
 			}
 		}
-	}
+	}()
+
+	// Block forever so container never exits
+	select {}
+
 }
